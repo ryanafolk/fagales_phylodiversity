@@ -1,0 +1,2 @@
+"settings","features","rm","train.AUC","avg.test.AUC","var.test.AUC","avg.diff.AUC","var.diff.AUC","avg.test.orMTP","var.test.orMTP","avg.test.or10pct","var.test.or10pct","AICc","delta.AICc","w.AIC","parameters"
+"H_4","H",4,0.7383,0.720958542713568,0.0511185638004722,0.0195676459219173,0.00344603490232974,0.0625,0.015625,0.0625,0.015625,324.709580758088,0,0.474272113011388,1
