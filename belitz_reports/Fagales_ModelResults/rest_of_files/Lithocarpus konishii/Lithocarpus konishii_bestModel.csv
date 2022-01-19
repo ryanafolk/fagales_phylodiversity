@@ -1,2 +1,0 @@
-"settings","features","rm","train.AUC","avg.test.AUC","var.test.AUC","avg.diff.AUC","var.diff.AUC","avg.test.orMTP","var.test.orMTP","avg.test.or10pct","var.test.or10pct","AICc","delta.AICc","w.AIC","parameters"
-"LQHPT_1","LQHPT",1,0.9592,0.795354056885606,0.019402668489698,0.137559990595134,0.00956392103370825,0.0357142857142857,0.00255102040816327,0.375,0.0295493197278912,2530.16587773606,0,1,92
