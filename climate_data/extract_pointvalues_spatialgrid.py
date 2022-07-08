@@ -54,7 +54,7 @@ for points_raw in files:
 		with open(points_raw, 'r') as datafile:
 			reader=csv.reader((line.replace('\0','') for line in datafile),delimiter=',',quoting=csv.QUOTE_NONE) 
 			for r in reader:
-				points.append([r[1], r[2]])
+				points.append([r[0], r[1]])
 		points_no_duplicates = set(map(tuple, points)) # No exact duplicates
 		climate_values = []
 		try:
