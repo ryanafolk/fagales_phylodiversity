@@ -14,19 +14,21 @@ env %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> env
 env <- as.data.frame(env)
 
 # Add RPD randomizations
+
 rand_RPD <- read.csv("./Fagales_CSVs_ToShare/rand_RPD_50km.csv")
 rand_RPD$x <- round(rand_RPD$x, digit = 1)
 rand_RPD$y <- round(rand_RPD$y, digit = 1)
 rand_RPD %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> rand_RPD
 rand_RPD <- as.data.frame(rand_RPD)
 # Add significance column
-rand_RPD$RPD_significance <- as.factor(ifelse(rand_RPD$value < 0.05, "Yes", "No"))
+# Note this is just significantly low RPD
+rand_RPD$RPD_significance <- as.factor(ifelse(rand_RPD$value < 0.05, "Low", ifelse(rand_RPD$value > 0.95, "High", "NS")))
 rand_RPD$value <- NULL
 
 combined <- merge(rand_RPD, env, by = c("x", "y"))
 
 # Add RPD
-RPD <- read.csv("./Fagales_CSVs_ToShare/rand_RPD_50km.csv")
+RPD <- read.csv("./Fagales_CSVs_ToShare/RPD_50km.csv")
 names(RPD) <- c("x", "y", "RPD")
 RPD$x <- round(RPD$x, digit = 1)
 RPD$y <- round(RPD$y, digit = 1)
@@ -46,69 +48,123 @@ CANAPE$CANAPE <- as.factor(CANAPE$CANAPE)
 
 combined <- merge(combined, CANAPE, by = c("x", "y"))
 
+## Add SR
+## This merge drops too many cells so this was only used to test species richness filtering in the models
+#SR <- read.csv("./Fagales_CSVs_ToShare/richness_50km.csv")
+#names(SR) <- c("x", "y", "SR")
+#SR$x <- round(SR$x, digit = 1)
+#SR$y <- round(SR$y, digit = 1)
+#SR %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> SR
+#SR <- as.data.frame(SR)
 
-# There is something wrong with the nod data coordinates
-## Add nodulation
-#proportion_nodulating <- read.csv("./Fagales_CSVs_ToShare/prop_nod.csv")
-#names(proportion_nodulating) <- c("x", "y", "proportion_nodulating")
-#proportion_nodulating$x <- round(proportion_nodulating$x, digit = 1)
-#proportion_nodulating$y <- round(proportion_nodulating$y, digit = 1)
-#proportion_nodulating %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> proportion_nodulating
-#proportion_nodulating <- as.data.frame(proportion_nodulating)
-#
-#
-#combined <- merge(combined, proportion_nodulating, by = c("x", "y"))
+#combined <- merge(combined, SR, by = c("x", "y"))
+
 
 # Normalize entire data frame
-combined.scaled <- rapply(combined, scale, c("numeric","integer"), how="replace")
+combined.temp <- combined
+combined.scaled <- rapply(combined.temp, scale, c("numeric","integer"), how="replace")
+combined.scaled$SR <- combined$SR
 combined.scaled <- as.data.frame(combined.scaled)
+combined.scaled$y <- combined.temp$y
+combined.scaled$x <- combined.temp$x
 
 
-
-
-
+########################
+# Model
+########################
 
 
 # RPD model
-summary(lm(RPD ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced, data = combined.scaled)) # Significant, Adjusted R-squared:  0.1271 
-# Precipitation most important, then aridity and temperature seasonality ~equally important
+linear_model_complex <- lm(RPD ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced, data = combined.scaled)
+# Top 5 predictors by GLM normalized coefficient
+linear_model_simple <- lm(RPD ~ BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced, data = combined.scaled)
+library(lme4)
+mixed_model_complex <- lmer(RPD ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined.scaled)
+# Top 5 predictors by LMM normalized coefficient
+mixed_model_simple <- lmer(RPD ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined.scaled)
+mixed_model_noenvironment <- lmer(RPD ~ (1 | y) + (1 | x), na.action = na.omit, data = combined.scaled)
 
-# RPD significance model
-summary(lm(aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced ~ RPD_significance, data = combined.scaled)) # Significant, Adjusted R-squared:  0.1271 
+AIC(linear_model_complex)
+AIC(linear_model_simple)
+AIC(mixed_model_complex)
+AIC(mixed_model_simple)
+AIC(mixed_model_noenvironment)
+# Complex mixed model favored
+
+summary(mixed_model_complex)
+
+library(MuMIn)
+r.squaredGLMM(mixed_model_complex)
+
+
 
 # CANAPE significance model
-summary(lm(aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced ~ CANAPE, data = combined.scaled)) # Significant, Adjusted R-squared:  0.1271 
-summary.aov(manova(cbind(aridity_index_UNEP, BIOCLIM_1, BIOCLIM_12, BIOCLIM_7, BIOCLIM_17, ISRICSOILGRIDS_new_average_nitrogen_reduced, ISRICSOILGRIDS_new_average_phx10percent_reduced, ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced) ~ CANAPE, data = combined.scaled)) # Significant, Adjusted R-squared:  0.1271 
+combined.scaled$CANAPE_significant <- combined.scaled$CANAPE
+levels(combined.scaled$CANAPE_significant)[levels(combined.scaled$CANAPE_significant)=="Neo"] <-"Sig"
+levels(combined.scaled$CANAPE_significant)[levels(combined.scaled$CANAPE_significant)=="Mixed"] <-"Sig"
+levels(combined.scaled$CANAPE_significant)[levels(combined.scaled$CANAPE_significant)=="Paleo"] <-"Sig"
+levels(combined.scaled$CANAPE_significant)
+# Reduce factor to 2 levels; otherwise glm guesses and does this silently
+# Top 5 variables in simple models chosen based on coefficients in complex logit model
+logit_complex <- glm(CANAPE_significant ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced, family = binomial(link='logit'), data = combined.scaled)
+logit_simple <- glm(CANAPE_significant ~ aridity_index_UNEP + BIOCLIM_12 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced, family=binomial(link='logit'), data = combined.scaled)
+mixed_model_complex <- glmer(CANAPE_significant ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), family=binomial(link='logit'), na.action = na.omit, data = combined.scaled, control = glmerControl(optimizer = "bobyqa",optCtrl = list(maxfun = 2e5))) # Stronger likelihood search options per warnings + documentation
+mixed_model_simple <- glmer(CANAPE_significant ~ aridity_index_UNEP + BIOCLIM_12 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), family=binomial(link='logit'), na.action = na.omit, data = combined.scaled, control = glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun = 2e5)))
+mixed_model_noenvironment <- glmer(CANAPE_significant ~ (1 | y) + (1 | x), family=binomial(link='logit'), na.action = na.omit, data = combined.scaled, control = glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun = 2e5)))
+
+AIC(logit_complex)
+AIC(logit_simple)
+AIC(mixed_model_complex)
+AIC(mixed_model_simple)
+AIC(mixed_model_noenvironment)
+
+# Mixed model complex favored
+summary(mixed_model_complex)
+
+library(MuMIn)
+r.squaredGLMM(mixed_model_complex)
 
 
 
 ########################
-# Some exploratory environment plots
+# Some plots
 ########################
 
 library(ggplot2)
-ggplot(combined, aes(x = RPD_significance, y = aridity_index_UNEP, fill = RPD_significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(quantile(combined$aridity_index_UNEP, 0.025, na.rm = TRUE), quantile(combined$aridity_index_UNEP, 0.975, na.rm = TRUE))
-ggplot(combined, aes(x = RPD_significance, y = BIOCLIM_1, fill = significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Mean annual temperature vs. RPD significance", x="Significance", y = "Bio1") + ylim(quantile(combined$BIOCLIM_1, 0.025, na.rm = TRUE), quantile(combined$BIOCLIM_1, 0.975, na.rm = TRUE))
-ggplot(combined, aes(x = RPD_significance, y = BIOCLIM_12, fill = significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Mean annual temperature vs. RPD significance", x="Significance", y = "Bio1") + ylim(quantile(combined$BIOCLIM_12, 0.025, na.rm = TRUE), quantile(combined$BIOCLIM_12, 0.975, na.rm = TRUE))
 
+
+
+# Violin plots
+ggplot(combined, aes(x = RPD_significance, y = ISRICSOILGRIDS_new_average_phx10percent_reduced, fill = RPD_significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(quantile(combined$ISRICSOILGRIDS_new_average_phx10percent_reduced, 0.025, na.rm = TRUE), quantile(combined$ISRICSOILGRIDS_new_average_phx10percent_reduced, 0.975, na.rm = TRUE))
 ggplot(combined, aes(x = CANAPE, y = aridity_index_UNEP, fill = CANAPE)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(quantile(combined$aridity_index_UNEP, 0.025, na.rm = TRUE), quantile(combined$aridity_index_UNEP, 0.975, na.rm = TRUE))
 
-
-# Assess alternative measures of community age -- node height and tip length essentially measure the same thing
-summary(lm(median_tl.normalized ~ median_nh.normalized, data = combined))
-
-# Assess species richness vs. node height -- confounding variable? Removed node/tip info, still somewhat significant
-summary(lm(alpha ~ median_nh.normalized, data = combined))
-
-# Mean annual temperature vs. median node height
-lm.temp_tl <- lm(median_tl ~ bio1, data = combined.scaled)
-summary(lm.temp_tl)
+# Hex plots
+# Aridity
+ggplot(combined, aes(x = aridity_index_UNEP, y = RPD)) + geom_hex(bins = 35) + scale_fill_continuous(type = "viridis") + theme_bw() + geom_smooth(method='lm', formula = y ~ x) + labs(title="Aridity vs. RPD", x="Aridity index", y = "RPD")
+# Latitude
+ggplot(combined, aes(x = y, y = RPD)) + geom_hex(bins = 30) + scale_fill_continuous(type = "viridis") + theme_bw() + geom_smooth(method='lm', formula = y ~ x) + labs(title="RPD vs. latitude", y="RPD", x = "Latitude")
 
 
+# North South Hemisphere low RPD comparison
+ggplot(combined[combined$y > 0, ], aes(x = RPD_significance, y = aridity_index_UNEP, fill = RPD_significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(quantile(combined$aridity_index_UNEP, 0.025, na.rm = TRUE), quantile(combined$aridity_index_UNEP, 0.975, na.rm = TRUE))
+ggplot(combined[combined$y < 0, ], aes(x = RPD_significance, y = aridity_index_UNEP, fill = RPD_significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(quantile(combined$aridity_index_UNEP, 0.025, na.rm = TRUE), quantile(combined$aridity_index_UNEP, 0.975, na.rm = TRUE))
+
+ggplot(combined[combined$y > 0, ], aes(x = RPD_significance, y = BIOCLIM_1, fill = RPD_significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Mean annual temperature vs. \nRPD significance", x="RPD_significance", y = "Mean annual temperature") + ylim(quantile(combined$BIOCLIM_1, 0.025, na.rm = TRUE), quantile(combined$BIOCLIM_1, 0.975, na.rm = TRUE))
+ggplot(combined[combined$y < 0, ], aes(x = RPD_significance, y = BIOCLIM_1, fill = RPD_significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Mean annual temperature vs. \nRPD significance", x="RPD_significance", y = "Mean annual temperature") + ylim(quantile(combined$BIOCLIM_1, 0.025, na.rm = TRUE), quantile(combined$BIOCLIM_1, 0.975, na.rm = TRUE))
+
+
+
+#library(merTools)
+#pred <- cbind(combined.scaled[combined.scaled$SR > 3,], predictInterval(mixed_model_complex, combined.scaled[combined.scaled$SR > 3,]))
+#
+#ggplot(pred) + 
+#  geom_line(aes(x, fit)) +
+#  geom_ribbon(aes(x, ymin = lwr, ymax = upr), alpha = .2) +
+#  geom_point(aes(x, y = RPD))
 
 
 ########################
-# Reload nodulation data
+# Load nodulation data
 ########################
 
 proportion_nodulating_env <- list.files(path="./climate_data/spatial_data_climate/proportion_nodulating", full.names = TRUE) %>% lapply(read_csv) %>% bind_rows 
@@ -123,10 +179,55 @@ combined_nod$y <- round(combined_nod$y, digit = 1)
 combined_nod %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> combined_nod
 combined_nod <- as.data.frame(combined_nod)
 
+## Add SR
+## Omit; too many dropped cells
+#combined_nod <- merge(combined_nod, SR, by = c("x", "y"))
+
 
 # Normalize entire data frame
-combined_nod.scaled <- scale(combined_nod[3:41])
+# Exclude grid cells without nodulation to address zero-inflation
+combined_nod.scaled <- rapply(combined_nod[combined_nod$prop_nod > 0,], scale, c("numeric","integer"), how="replace")
+#combined_nod.scaled$SR <- combined_nod[combined_nod$prop_nod > 0,]$SR
+combined_nod.scaled$x <- combined_nod[combined_nod$prop_nod > 0,]$x
+combined_nod.scaled$y <- combined_nod[combined_nod$prop_nod > 0,]$y
 combined_nod.scaled <- as.data.frame(combined_nod.scaled)
+
+
+########################
+# Nodule model
+########################
+
+linear_model_complex <- lm(prop_nod ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced, data = combined_nod.scaled)
+# Top 5 predictors by GLM normalized coefficient
+linear_model_simple <- lm(prop_nod ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + ISRICSOILGRIDS_new_average_phx10percent_reduced, data = combined_nod.scaled)
+library(lme4)
+mixed_model_complex <- lmer(prop_nod ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined_nod.scaled)
+# Top 5 predictors by LMM normalized coefficient
+mixed_model_simple <- lmer(prop_nod ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + ISRICSOILGRIDS_new_average_phx10percent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined_nod.scaled)
+
+mixed_model_noenvironment <- lmer(prop_nod ~ (1 | y) + (1 | x), na.action = na.omit, data = combined_nod.scaled)
+
+AIC(linear_model_complex)
+AIC(linear_model_simple)
+AIC(mixed_model_complex)
+AIC(mixed_model_simple)
+AIC(mixed_model_noenvironment)
+# Complex mixed model favored
+
+summary(mixed_model_complex)
+
+library(MuMIn)
+r.squaredGLMM(mixed_model_complex)
+# First number is marginal (fixed effects only) and conditional (entire model)
+
+
+# Get slopes of northern and southern hemisphere aridity relationships
+# Northern hemisphere
+summary(lm(prop_nod ~ aridity_index_UNEP, data = combined_nod[combined_nod$y > 0, ]))
+# Southern hemisphere
+summary(lm(prop_nod ~ aridity_index_UNEP, data = combined_nod[combined_nod$y < 0, ]))
+# Manuscript results for this hemisphere contrast report data with zeros because there are otherwise too few datapoints left for the southern hemisphere
+
 
 ########################
 # Nodulation plots
@@ -134,86 +235,50 @@ combined_nod.scaled <- as.data.frame(combined_nod.scaled)
 
 # Bin size control + color palette
 library(ggplot2)
-ggplot(combined_nod, aes(x = BIOCLIM_12, y = prop_nod) ) + geom_hex(bins = 70) + scale_fill_continuous(type = "viridis") + theme_bw()
+ggplot(combined_nod[combined_nod$prop_nod > 0,], aes(x = aridity_index_UNEP, y = prop_nod) ) + geom_hex(bins = 28) + scale_fill_continuous(type = "viridis") + theme_bw() + ylim(0, 0.9999) + geom_smooth(method='lm', formula = y ~ x) + labs(title="Aridity vs.\nproportion nodulating", x="Aridity index", y = "Proportion nodulating")
 
-ggplot(combined_nod, aes(x = aridity_index_UNEP, y = prop_nod) ) + geom_hex(bins = 70) + scale_fill_continuous(type = "viridis") + theme_bw() + ylim(0.01, 0.75) + geom_smooth(method='lm', formula = y ~ x) + labs(title="Aridity vs.\nproportion nodulating", x="Aridity index", y = "Proportion nodulating")
-summary(lm(prop_nod ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced, data = combined_nod)) # not significantsummary(lm(prop_nod ~ aridity_index_UNEP, data = combined_nod.scaled))
-
+ggplot(combined_nod[combined_nod$prop_nod > 0 & combined_nod$y < 0,], aes(x = aridity_index_UNEP, y = prop_nod) ) + geom_hex(bins = 25) + scale_fill_continuous(type = "viridis") + theme_bw() + ylim(0, 0.9999) + geom_smooth(method='lm', formula = y ~ x) + labs(title="Aridity vs.\nproportion nodulating,\nSouthern Hemisphere", x="Aridity index", y = "Proportion nodulating")
 
 
+ggplot(combined_nod[combined_nod$prop_nod > 0,], aes(x = ISRICSOILGRIDS_new_average_phx10percent_reduced/10, y = prop_nod) ) + geom_hex(bins = 28) + scale_fill_continuous(type = "viridis") + theme_bw() + ylim(0, 1) + geom_smooth(method='lm', formula = y ~ x) + labs(title="Soil pH vs.\nproportion nodulating", x="pH", y = "Proportion nodulating")
+
+
+#ggplot(combined_nod, aes(x = ISRICSOILGRIDS_new_average_phx10percent_reduced, y = prop_nod) ) + geom_hex(bins = 70) + scale_fill_continuous(type = "viridis") + theme_bw() + ylim(0.01, 0.75) + geom_smooth(method='lm', formula = y ~ x) + labs(title="pH vs.\nproportion nodulating", x="pH", y = "Proportion nodulating")
 
 
 
-## Percent bio1 that are impossible 
-#length(na.omit(combined[combined$bio1_biotaphy_5min_global < -50, ]$bio1_biotaphy_5min_global))/length(na.omit(combined$bio1_biotaphy_5min_global)) * 100
+combined_nod$nod_category <- as.factor(ifelse(combined_nod$prop_nod > 0, "Present", "Absent"))
+ggplot(combined_nod[combined_nod$y > 0, ], aes(x = nod_category, y = aridity_index_UNEP, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. presence of nodulators,\nNorthern Hemisphere", x="Nodulator presence", y = "UNEP aridity index") + ylim(quantile(combined$aridity_index_UNEP, 0.025, na.rm = TRUE), quantile(combined$aridity_index_UNEP, 0.975, na.rm = TRUE))
+ggplot(combined_nod[combined_nod$y < 0, ], aes(x = nod_category, y = aridity_index_UNEP, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. presence of nodulators,\nSouthern Hemisphere", x="Nodulator presence", y = "UNEP aridity index") + ylim(quantile(combined$aridity_index_UNEP, 0.025, na.rm = TRUE), quantile(combined$aridity_index_UNEP, 0.975, na.rm = TRUE))
 
-########################
-# Build environment vs. phylogenetic stats models
-########################
-
-# combined model
-lm.combined.tl <- lm(median_tl ~ bio1 + bio12 + bio17 + elevation + slope + coarse_frag + sand + soil + phx10 + needleleaf + herbaceous, data = combined.scaled)
-summary(lm.combined.tl)
-
-# Much better explanatory power for oldest divergences, but correlated with species richness
-# Consider normalizing by species richness
-lm.combined.nl97_5 <- lm(X97.5_per_tl ~ bio1 + bio12 + bio17 + elevation + slope + coarse_frag + sand + soil + phx10 + needleleaf + herbaceous, data = combined.scaled)
-summary(lm.combined.nl97_5)
-
-# Much better explanatory power for youngest divergences, but correlated with species richness
-# Consider normalizing by species richness
-lm.combined.tl2_5 <- lm(X2.5_per_tl ~ bio1 + bio12 + bio17 + elevation + slope + coarse_frag + sand + soil + phx10 + needleleaf + herbaceous, data = combined.scaled)
-summary(lm.combined.tl2_5)
+ggplot(combined_nod[combined_nod$y > 0, ], aes(x = nod_category, y = BIOCLIM_1/10, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Mean annual temperature vs. \npresence of nodulators,\nSouthern Hemisphere", x="Nodulator presence", y = "Mean annual temperature")
+ggplot(combined_nod[combined_nod$y < 0, ], aes(x = nod_category, y = BIOCLIM_1/10, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Mean annual temperature vs. \npresence of nodulators,\nSouthern Hemisphere", x="Nodulator presence", y = "Mean annual temperature")
 
 
-lm.combined.richness <- lm(alpha ~ bio1 + bio12 + bio17 + elevation + slope + coarse_frag + sand + soil + phx10 + needleleaf + herbaceous, data = combined.scaled)
-summary(lm.combined.richness)
-
-lm.combined.nh <- lm(median_nh.normalized ~ alpha + bio1 + bio12 + bio17 + elevation + slope + coarse_frag + sand + soil + phx10 + needleleaf + herbaceous, data = combined.scaled)
-summary(lm.combined.nh)
-
-########################
-# Some exploratory trait plots 
-########################
-
-# Assess woodiness vs. tip length -- are woody-containing communities older?
-# Coeff positive (more woodiness in older communities), R2 adj 0.4009
-summary(lm(woodiness.proportional ~ median_tl, data = combined.scaled))
-
-# Assess chloranthoid teeth vs. tip length
-# Coeff negative (less chloranthoid teeth in older communities), R2 adj 0.3154 
-summary(lm(Chloranthoid.teeth.proportional ~ median_tl, data = combined.scaled))
-
-# Assess ethereal oil cells vs. tip length
-# Coeff positive (more ethereal oil cells in older communities), R2 adj 0.3329 
-summary(lm(Ethereal.oil.cells.proportional ~ median_tl, data = combined.scaled))
-
-# Assess vessels vs. tip length
-# Coeff positive (more ethereal oil cells in older communities), R2 adj 0.01162 -- significant but very weak 
-summary(lm(Vessels.proportional ~ median_tl, data = combined.scaled))
-
-
-# Bin size control + color palette
-library(ggplot2)
-ggplot(combined, aes(x=woodiness.proportional, y=median_tl) ) + geom_hex(bins = 70) + scale_fill_continuous(type = "viridis") + theme_bw()
-ggplot(combined, aes(x=Chloranthoid.teeth.proportional, y=median_tl) ) + geom_hex(bins = 70) + scale_fill_continuous(type = "viridis") + theme_bw()
-ggplot(combined, aes(Ethereal.oil.cells.proportional, y=median_tl) ) + geom_hex(bins = 70) + scale_fill_continuous(type = "viridis") + theme_bw() + xlim(0.01, 0.3) + ylim(0, 15) # zero-inflated so need to exclude
-
-
-########################
-# Build environment vs. phylogenetic stats models
-########################
-
-# combined model
-# adj r2 0.5972, all significant except pollen and perianth merosity, chloranthoid most important, followed by stamen phyllotaxis and woodiness. Unexpected direction and large effect size for chloranthoid teeth, carpel form
-lm.combinedtraits.tl <- lm(median_tl ~ Vessels.proportional + Chloranthoid.teeth.proportional + Ethereal.oil.cells.proportional + Perianth.phyllotaxis.proportional + Perianth.merosity.proportional + Stamen.phyllotaxis.proportional + Laminar.stamens.proportional + Pollen.features.proportional + Carpel.form.proportional + Postgenital.sealing.of.the.carpel.proportional + woodiness.proportional, data = combined.scaled)
-options(scipen = 999)
-# options(scipen = 0)
-summary(lm.combinedtraits.tl)
-
-# Add in environmental data to understand how much is increased by adding traits (see environment only above)
-# Chloranthoid teeth was most important, bio1 narrowly second, stamen phyllotaxis narrowly third
-# Comparing environment only model, adj. R2 0.663 --> 0.696. Modest increase, but traits important in combined model. Presumably high internal correlation among predictors.
-lm.combinedtraitsenv.tl <- lm(median_tl ~ Vessels.proportional + Chloranthoid.teeth.proportional + Ethereal.oil.cells.proportional + Perianth.phyllotaxis.proportional + Perianth.merosity.proportional + Stamen.phyllotaxis.proportional + Laminar.stamens.proportional + Pollen.features.proportional + Carpel.form.proportional + Postgenital.sealing.of.the.carpel.proportional + woodiness.proportional + bio1 + bio12 + bio17 + elevation + slope + coarse_frag + sand + soil + phx10 + needleleaf + herbaceous, data = combined.scaled)
-summary(lm.combinedtraitsenv.tl)
-
+#########################
+## Nodulation vs. significance
+#########################
+#
+## harder rounding to join pixels
+#
+#proportion_nodulating$x <- round(proportion_nodulating$x, digit = 0)
+#proportion_nodulating$y <- round(proportion_nodulating$y, digit = 0)
+#proportion_nodulating %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> proportion_nodulating
+#proportion_nodulating <- as.data.frame(proportion_nodulating)
+#
+#CANAPE <- read.csv("./Fagales_CSVs_ToShare/CANAPE.csv")
+#names(CANAPE) <- c("x", "y", "CANAPE")
+#CANAPE$x <- round(CANAPE$x, digit = 0)
+#CANAPE$y <- round(CANAPE$y, digit = 0)
+#CANAPE %>% group_by(x, y) %>% summarize_if(is.character, max) -> CANAPE
+#CANAPE <- as.data.frame(CANAPE)
+#CANAPE$CANAPE <- as.factor(CANAPE$CANAPE)
+#
+#nod_rpd <- merge(proportion_nodulating, CANAPE, by = c("x", "y"))
+#
+## North South Hemisphere RPD comparison
+#ggplot(nod_rpd[nod_rpd$y > 0, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 0.5)
+#ggplot(nod_rpd[nod_rpd$y < 0, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE, ymin = 0)) + geom_violin(trim=TRUE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index")
+#
+#
+#
