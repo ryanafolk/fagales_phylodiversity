@@ -1,372 +1,8 @@
-#########################
-# Load data sets#
-#########################
-#
-library(dplyr)#
-library(readr)#
-# Load environmental data; choosing PD as the most high resolution reported variable#
-env <- list.files(path="./climate_data/spatial_data_climate/PD_P_50km", full.names = TRUE) %>% lapply(read_csv) %>% bind_rows #
-env <- data.frame(env)#
-env[env == -9999] <- NA#
-env$x <- round(env$x, digit = 1)#
-env$y <- round(env$y, digit = 1)#
-env %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> env#
-env <- as.data.frame(env)#
-#
-# Add RPD randomizations#
-rand_RPD <- read.csv("./Fagales_CSVs_ToShare/rand_RPD_50km.csv")#
-rand_RPD$x <- round(rand_RPD$x, digit = 1)#
-rand_RPD$y <- round(rand_RPD$y, digit = 1)#
-rand_RPD %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> rand_RPD#
-rand_RPD <- as.data.frame(rand_RPD)#
-# Add significance column#
-rand_RPD$RPD_significance <- as.factor(ifelse(rand_RPD$value < 0.05, "Yes", "No"))#
-rand_RPD$value <- NULL#
-#
-combined <- merge(rand_RPD, env, by = c("x", "y"))#
-#
-# Add RPD#
-RPD <- read.csv("./Fagales_CSVs_ToShare/RPD_50km.csv")#
-names(RPD) <- c("x", "y", "RPD")#
-RPD$x <- round(RPD$x, digit = 1)#
-RPD$y <- round(RPD$y, digit = 1)#
-RPD %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> RPD#
-RPD <- as.data.frame(RPD)#
-#
-combined <- merge(combined, RPD, by = c("x", "y"))#
-#
-# Add CANAPE#
-CANAPE <- read.csv("./Fagales_CSVs_ToShare/CANAPE.csv")#
-names(CANAPE) <- c("x", "y", "CANAPE")#
-CANAPE$x <- round(CANAPE$x, digit = 1)#
-CANAPE$y <- round(CANAPE$y, digit = 1)#
-CANAPE %>% group_by(x, y) %>% summarize_if(is.character, max) -> CANAPE#
-CANAPE <- as.data.frame(CANAPE)#
-CANAPE$CANAPE <- as.factor(CANAPE$CANAPE)#
-#
-combined <- merge(combined, CANAPE, by = c("x", "y"))#
-#
-## Add SR#
-## This merge drops too many cells so this was only used to test species richness filtering in the models#
-#SR <- read.csv("./Fagales_CSVs_ToShare/richness_50km.csv")#
-#names(SR) <- c("x", "y", "SR")#
-#SR$x <- round(SR$x, digit = 1)#
-#SR$y <- round(SR$y, digit = 1)#
-#SR %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> SR#
-#SR <- as.data.frame(SR)#
-#
-#combined <- merge(combined, SR, by = c("x", "y"))#
-# Normalize entire data frame#
-combined.temp <- combined#
-combined.scaled <- rapply(combined.temp, scale, c("numeric","integer"), how="replace")#
-combined.scaled$SR <- combined$SR#
-combined.scaled <- as.data.frame(combined.scaled)#
-combined.scaled$y <- combined.temp$y#
-combined.scaled$x <- combined.temp$x
-ggplot(combined_nod[combined_nod$y < 0, ], aes(x = RPD_significance, y = aridity_index_UNEP, fill = RPD_significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(quantile(combined$ISRICSOILGRIDS_new_average_phx10percent_reduced, 0.025, na.rm = TRUE), quantile(combined$ISRICSOILGRIDS_new_average_phx10percent_reduced, 0.975, na.rm = TRUE))
-library(ggplot2)
-ggplot(combined_nod[combined_nod$y < 0, ], aes(x = RPD_significance, y = aridity_index_UNEP, fill = RPD_significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(quantile(combined$ISRICSOILGRIDS_new_average_phx10percent_reduced, 0.025, na.rm = TRUE), quantile(combined$ISRICSOILGRIDS_new_average_phx10percent_reduced, 0.975, na.rm = TRUE))
-ggplot(combined[combined$y < 0, ], aes(x = RPD_significance, y = aridity_index_UNEP, fill = RPD_significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(quantile(combined$ISRICSOILGRIDS_new_average_phx10percent_reduced, 0.025, na.rm = TRUE), quantile(combined$ISRICSOILGRIDS_new_average_phx10percent_reduced, 0.975, na.rm = TRUE))
-ggplot(combined[combined$y < 0, ], aes(x = RPD_significance, y = aridity_index_UNEP, fill = RPD_significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(quantile(combined$aridity_index_UNEP, 0.025, na.rm = TRUE), quantile(combined$aridity_index_UNEP, 0.975, na.rm = TRUE))
-ggplot(combined[combined$y > 0, ], aes(x = RPD_significance, y = aridity_index_UNEP, fill = RPD_significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(quantile(combined$aridity_index_UNEP, 0.025, na.rm = TRUE), quantile(combined$aridity_index_UNEP, 0.975, na.rm = TRUE))
-ggplot(combined[combined$y < 0, ], aes(x = RPD_significance, y = aridity_index_UNEP, fill = RPD_significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(quantile(combined$aridity_index_UNEP, 0.025, na.rm = TRUE), quantile(combined$aridity_index_UNEP, 0.975, na.rm = TRUE))
-ggplot(combined[combined$y > 0, ], aes(x = RPD_significance, y = aridity_index_UNEP, fill = RPD_significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(quantile(combined$aridity_index_UNEP, 0.025, na.rm = TRUE), quantile(combined$aridity_index_UNEP, 0.975, na.rm = TRUE))
-ggplot(combined[combined$y < 0, ], aes(x = RPD_significance, y = aridity_index_UNEP, fill = RPD_significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(quantile(combined$aridity_index_UNEP, 0.025, na.rm = TRUE), quantile(combined$aridity_index_UNEP, 0.975, na.rm = TRUE))
-# RPD model#
-linear_model_complex <- lm(RPD ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced, data = combined.scaled)#
-# Top 5 predictors by GLM normalized coefficient#
-linear_model_simple <- lm(RPD ~ BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced, data = combined.scaled)#
-library(lme4)#
-mixed_model_complex <- lmer(RPD ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined.scaled)#
-# Top 5 predictors by LMM normalized coefficient#
-mixed_model_simple <- lmer(RPD ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined.scaled)#
-mixed_model_noenvironment <- lmer(RPD ~ (1 | y) + (1 | x), na.action = na.omit, data = combined.scaled)#
-#
-AIC(linear_model_complex)#
-AIC(linear_model_simple)#
-AIC(mixed_model_complex)#
-AIC(mixed_model_simple)#
-AIC(mixed_model_noenvironment)#
-# Complex mixed model favored
-summary(mixed_model_complex)
-ggplot(combined[combined$y > 0, ], aes(x = RPD_significance, y = BIOCLIM_1, fill = RPD_significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "Mean annual temperature") + ylim(quantile(combined$BIOCLIM_1, 0.025, na.rm = TRUE), quantile(combined$BIOCLIM_1, 0.975, na.rm = TRUE))
-ggplot(combined[combined$y < 0, ], aes(x = RPD_significance, y = BIOCLIM_1, fill = RPD_significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "Mean annual temperature") + ylim(quantile(combined$BIOCLIM_1, 0.025, na.rm = TRUE), quantile(combined$BIOCLIM_1, 0.975, na.rm = TRUE))
-ggplot(combined[combined$y > 0, ], aes(x = RPD_significance, y = BIOCLIM_1, fill = RPD_significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Mean annual temperature vs. RPD significance", x="RPD_significance", y = "Mean annual temperature") + ylim(quantile(combined$BIOCLIM_1, 0.025, na.rm = TRUE), quantile(combined$BIOCLIM_1, 0.975, na.rm = TRUE))
-ggplot(combined[combined$y > 0, ], aes(x = RPD_significance, y = BIOCLIM_1, fill = RPD_significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Mean annual temperature vs. \nRPD significance", x="RPD_significance", y = "Mean annual temperature") + ylim(quantile(combined$BIOCLIM_1, 0.025, na.rm = TRUE), quantile(combined$BIOCLIM_1, 0.975, na.rm = TRUE))
-ggplot(combined[combined$y < 0, ], aes(x = RPD_significance, y = BIOCLIM_1, fill = RPD_significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Mean annual temperature vs. \nRPD significance", x="RPD_significance", y = "Mean annual temperature") + ylim(quantile(combined$BIOCLIM_1, 0.025, na.rm = TRUE), quantile(combined$BIOCLIM_1, 0.975, na.rm = TRUE))
-nod_rpd <- merge(proportion_nodulating, RPD_rand, by = c("x", "y"))
-proportion_nodulating_env <- list.files(path="./climate_data/spatial_data_climate/proportion_nodulating", full.names = TRUE) %>% lapply(read_csv) %>% bind_rows #
-proportion_nodulating_env <- data.frame(proportion_nodulating_env)#
-proportion_nodulating <- read.csv("./Fagales_CSVs_ToShare/proportion_nodulating.csv")
-nod_rpd <- merge(proportion_nodulating, RPD_rand, by = c("x", "y"))
-nod_rpd <- merge(proportion_nodulating, rand_RPD, by = c("x", "y"))
-head(nod_rpd)
-proportion_nodulating$x <- round(proportion_nodulating$x, digit = 1)#
-proportion_nodulating$y <- round(proportion_nodulating$y, digit = 1)#
-proportion_nodulating %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> proportion_nodulating#
-#
-rand_RPD$x <- round(rand_RPD$x, digit = 1)#
-rand_RPD$y <- round(rand_RPD$y, digit = 1)#
-rand_RPD %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> rand_RPD
-nod_rpd <- merge(proportion_nodulating, rand_RPD, by = c("x", "y"))
-head(nod_rpd)
-rand_RPD
-proportion_nodulating
-rand_RPD <- read.csv("./Fagales_CSVs_ToShare/rand_RPD_50km.csv")#
-rand_RPD$x <- round(rand_RPD$x, digit = 1)#
-rand_RPD$y <- round(rand_RPD$y, digit = 1)#
-rand_RPD %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> rand_RPD#
-rand_RPD <- as.data.frame(rand_RPD)#
-# Add significance column#
-rand_RPD$RPD_significance <- as.factor(ifelse(rand_RPD$value < 0.05, "Yes", "No"))#
-rand_RPD$value <- NULL
-rand_RPD
-nod_rpd <- merge(proportion_nodulating, rand_RPD, by = c("x", "y"))
-nod_rpd
-proportion_nodulating
-proportion_nodulating <- as.data.frame(proportion_nodulating)
-nod_rpd <- merge(proportion_nodulating, rand_RPD, by = c("x", "y"))
-head(nod_rpd)
-head(proportion_nodulating)
-proportion_nodulating
-rand_RPD
-rand_RPD <- read.csv("./Fagales_CSVs_ToShare/rand_RPD_50km.csv")
-length(rand_RPD$x)
-length(proportion_nodulating$x)
-proportion_nodulating$x <- round(proportion_nodulating$x, digit = 1)#
-proportion_nodulating$y <- round(proportion_nodulating$y, digit = 1)#
-proportion_nodulating %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> proportion_nodulating#
-proportion_nodulating <- as.data.frame(proportion_nodulating)
-length(proportion_nodulating$x)
-head(proportion_nodulating)
-nod_rpd <- merge(proportion_nodulating, CANAPE, by = c("x", "y"))
-head(nod_rpd)
-head(proportion_nodulating)
-head(CANAPE)
-head(sort(CANAPE))
-head(sort(CANAPE$x))
-head(sort(proportion_nodulating $x))
-head(sort(proportion_nodulating $x), 1000)
-head(sort(proportion_nodulating $x))
-head(sort(CANAPE$x), 1000)
-proportion_nodulating$x <- round(proportion_nodulating$x, digit = 0)#
-proportion_nodulating$y <- round(proportion_nodulating$y, digit = 0)#
-proportion_nodulating %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> proportion_nodulating#
-proportion_nodulating <- as.data.frame(proportion_nodulating)#
-#
-CANAPE <- read.csv("./Fagales_CSVs_ToShare/CANAPE.csv")#
-names(CANAPE) <- c("x", "y", "CANAPE")#
-CANAPE$x <- round(CANAPE$x, digit = 0)#
-CANAPE$y <- round(CANAPE$y, digit = 0)#
-CANAPE %>% group_by(x, y) %>% summarize_if(is.character, max) -> CANAPE#
-CANAPE <- as.data.frame(CANAPE)#
-CANAPE$CANAPE <- as.factor(CANAPE$CANAPE)
-nod_rpd <- merge(proportion_nodulating, CANAPE, by = c("x", "y"))
-head(nod_rpd)
-head(nod_rpd)
-ggplot(nod_rpd[nod_rpd$y > 0, ], aes(x = CANAPE, y = prop_nod, fill = RPD_significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(quantile(combined$prop_nod, 0.025, na.rm = TRUE), quantile(combined$prop_nod, 0.975, na.rm = TRUE))
-ggplot(nod_rpd[nod_rpd$y > 0, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(quantile(combined$prop_nod, 0.025, na.rm = TRUE), quantile(combined$prop_nod, 0.975, na.rm = TRUE))
-ggplot(nod_rpd[nod_rpd$y < 0, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 0.4))
-ggplot(nod_rpd[nod_rpd$y > 0, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 0.4))
-ggplot(nod_rpd[nod_rpd$y > 0, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 0.4)
-ggplot(nod_rpd[nod_rpd$y > 0, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 0.3)
-ggplot(nod_rpd[nod_rpd$y > 0, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 0.5)
-ggplot(nod_rpd[nod_rpd$y < 0, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 0.5)
-ggplot(nod_rpd[nod_rpd$y < 0, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 1)
-ggplot(nod_rpd[nod_rpd$y < 0, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index")
-ggplot(nod_rpd[nod_rpd$y < 0, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 1)
-ggplot(nod_rpd[nod_rpd$y < 0, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index")
-ggplot(nod_rpd[nod_rpd$y < 0, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 1)
-ggplot(nod_rpd[nod_rpd$y < 0, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE)) + geom_violin(trim=TRUE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 1)
-ggplot(nod_rpd[nod_rpd$y < 0.1, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE)) + geom_violin(trim=TRUE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 1)
-ggplot(nod_rpd[nod_rpd$y < 0, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE)) + geom_violin(trim=TRUE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 1)
-nod_rpd[nod_rpd$y < 0 & nod_rpd$CANAPE = "Neo", ]
-nod_rpd[nod_rpd$y < 0 & nod_rpd$CANAPE == "Neo", ]
-nod_rpd[nod_rpd$y < 0 & nod_rpd$CANAPE == "Mixed", ]
-nod_rpd[nod_rpd$y < 0 & nod_rpd$CANAPE == "Paleo", ]
-ggplot(nod_rpd[nod_rpd$y < 0, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE)) + geom_violin(trim=TRUE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 1)
-ggplot(nod_rpd[nod_rpd$y < 0.1, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE)) + geom_violin(trim=TRUE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 1)
-ggplot(nod_rpd[nod_rpd$y < 0, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 1)
-ggplot(nod_rpd[nod_rpd$y < 0, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 1)rand_RPD <- read.csv("./Fagales_CSVs_ToShare/rand_RPD_50km.csv")#
-rand_RPD$x <- round(rand_RPD$x, digit = 0)#
-rand_RPD$y <- round(rand_RPD$y, digit = 0)#
-rand_RPD %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> rand_RPD#
-rand_RPD <- as.data.frame(rand_RPD)#
-# Add significance column#
-rand_RPD$RPD_significance <- as.factor(ifelse(rand_RPD$value < 0.05, "Yes", "No"))#
-rand_RPD$value <- NULL#
-#
-nod_rpd <- merge(proportion_nodulating, RPD, by = c("x", "y"))
-head(nod_rpd)
-ggplot(nod_rpd[nod_rpd$y < 0, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 1)CANAPE <- read.csv("./Fagales_CSVs_ToShare/CANAPE.csv")#
-names(CANAPE) <- c("x", "y", "CANAPE")#
-CANAPE$x <- round(CANAPE$x, digit = 0)#
-CANAPE$y <- round(CANAPE$y, digit = 0)#
-CANAPE %>% group_by(x, y) %>% summarize_if(is.character, max) -> CANAPE#
-CANAPE <- as.data.frame(CANAPE)#
-CANAPE$CANAPE <- as.factor(CANAPE$CANAPE)#
-#
-nod_rpd <- merge(proportion_nodulating, CANAPE, by = c("x", "y"))
-CANAPE$CANAPE <- as.factor(CANAPE$CANAPE)
-CANAPE <- read.csv("./Fagales_CSVs_ToShare/CANAPE.csv")#
-names(CANAPE) <- c("x", "y", "CANAPE")#
-CANAPE$x <- round(CANAPE$x, digit = 0)#
-CANAPE$y <- round(CANAPE$y, digit = 0)#
-CANAPE %>% group_by(x, y) %>% summarize_if(is.character, max) -> CANAPE#
-CANAPE <- as.data.frame(CANAPE)#
-CANAPE$CANAPE <- as.factor(CANAPE$CANAPE)
-nod_rpd <- merge(proportion_nodulating, CANAPE, by = c("x", "y"))#
-#
-# North South Hemisphere RPD comparison#
-ggplot(nod_rpd[nod_rpd$y > 0, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 0.5)
-ggplot(nod_rpd[nod_rpd$y < 0, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE, ymin = 0)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index")
-ggplot(nod_rpd[nod_rpd$y < 0, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE, ymin = 0)) + geom_violin(trim=TRUE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index")
-combined_nod$nod_category <- as.factor(ifelse(combined_nod$prop_nod > 0, "Nod", "Nonnod"))
-proportion_nodulating_env <- list.files(path="./climate_data/spatial_data_climate/proportion_nodulating", full.names = TRUE) %>% lapply(read_csv) %>% bind_rows #
-proportion_nodulating_env <- data.frame(proportion_nodulating_env)#
-proportion_nodulating <- read.csv("./Fagales_CSVs_ToShare/proportion_nodulating.csv")#
-#
-combined_nod <- merge(proportion_nodulating, proportion_nodulating_env, by = c("x", "y"))#
-combined_nod[combined_nod == -9999] <- NA#
-#
-combined_nod$x <- round(combined_nod$x, digit = 1)#
-combined_nod$y <- round(combined_nod$y, digit = 1)#
-combined_nod %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> combined_nod#
-combined_nod <- as.data.frame(combined_nod)#
-#
-## Add SR#
-## Omit; too many dropped cells#
-#combined_nod <- merge(combined_nod, SR, by = c("x", "y"))#
-# Normalize entire data frame#
-# Exclude grid cells without nodulation to address zero-inflation#
-combined_nod.scaled <- rapply(combined_nod[combined_nod$prop_nod > 0,], scale, c("numeric","integer"), how="replace")#
-#combined_nod.scaled$SR <- combined_nod[combined_nod$prop_nod > 0,]$SR#
-combined_nod.scaled$x <- combined_nod[combined_nod$prop_nod > 0,]$x#
-combined_nod.scaled$y <- combined_nod[combined_nod$prop_nod > 0,]$y#
-combined_nod.scaled <- as.data.frame(combined_nod.scaled)
-combined_nod$nod_category <- as.factor(ifelse(combined_nod$prop_nod > 0, "Nod", "Nonnod"))
-ggplot(combined_nod[combined_nod$y > 0, ], aes(x = nod_category, y = aridity_index_UNEP, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 0.5)
-combined_nod$nod_category <- as.factor(ifelse(combined_nod$prop_nod > 0.5, "Nod", "Nonnod"))
-ggplot(combined_nod[combined_nod$y > 0, ], aes(x = nod_category, y = aridity_index_UNEP, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 0.5)
-ggplot(combined_nod[combined_nod$y < 0, ], aes(x = nod_category, y = aridity_index_UNEP, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 0.5)
-combined_nod$nod_category <- as.factor(ifelse(combined_nod$prop_nod > 0, "Nod", "Nonnod"))
-ggplot(combined_nod[combined_nod$y < 0, ], aes(x = nod_category, y = aridity_index_UNEP, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 0.5)
-combined_nod$nod_category <- as.factor(ifelse(combined_nod$prop_nod > 0, "Nodulating", "Non-nodulating"))#
-ggplot(combined_nod[combined_nod$y < 0, ], aes(x = nod_category, y = aridity_index_UNEP, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 0.5)
-ggplot(combined_nod[combined_nod$y < 0, ], aes(x = nod_category, y = aridity_index_UNEP, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. presence of nodulators,\nSouthern Hemisphere", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 0.5)
-ggplot(combined_nod[combined_nod$y > 0, ], aes(x = nod_category, y = aridity_index_UNEP, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. presence of nodulators,\nSouthern Hemisphere", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 0.5)
-ggplot(combined_nod[combined_nod$y > 0, ], aes(x = nod_category, y = BIOCLIM_1, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. presence of nodulators,\nSouthern Hemisphere", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 0.5)
-ggplot(combined_nod[combined_nod$y < 0, ], aes(x = nod_category, y = BIOCLIM_1, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. presence of nodulators,\nSouthern Hemisphere", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 0.5)
-ggplot(combined_nod[combined_nod$y > 0, ], aes(x = nod_category, y = aridity_index_UNEP, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. presence of nodulators,\nSouthern Hemisphere", x="RPD_significance", y = "UNEP aridity index")
-ggplot(combined_nod[combined_nod$y > 0, ], aes(x = nod_category, y = aridity_index_UNEP, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. presence of nodulators,\nSouthern Hemisphere", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 0.5)
-ggplot(combined_nod[combined_nod$y > 0, ], aes(x = nod_category, y = aridity_index_UNEP, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. presence of nodulators,\nSouthern Hemisphere", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 0.7)
-ggplot(combined_nod[combined_nod$y > 0, ], aes(x = nod_category, y = aridity_index_UNEP, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. presence of nodulators,\nSouthern Hemisphere", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 1)
-ggplot(combined_nod[combined_nod$y > 0, ], aes(x = nod_category, y = aridity_index_UNEP, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. presence of nodulators,\nNorthern Hemisphere", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 1)
-ggplot(combined_nod[combined_nod$y > 0, ], aes(x = nod_category, y = aridity_index_UNEP, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. presence of nodulators,\nNorthern Hemisphere", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 1)
-ggplot(combined_nod[combined_nod$y < 0, ], aes(x = nod_category, y = aridity_index_UNEP, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. presence of nodulators,\nSouthern Hemisphere", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 1)
-ggplot(combined_nod[combined_nod$y > 0, ], aes(x = nod_category, y = aridity_index_UNEP, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. presence of nodulators,\nNorthern Hemisphere", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 1)
-ggplot(combined_nod[combined_nod$y > 0, ], aes(x = nod_category, y = BIOCLIM_1, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. presence of nodulators,\nSouthern Hemisphere", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 0.5)
-ggplot(combined_nod[combined_nod$y > 0, ], aes(x = nod_category, y = BIOCLIM_1, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. presence of nodulators,\nSouthern Hemisphere", x="RPD_significance", y = "UNEP aridity index")
-ggplot(combined_nod[combined_nod$y > 0, ], aes(x = nod_category, y = BIOCLIM_1/10, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. presence of nodulators,\nSouthern Hemisphere", x="RPD_significance", y = "UNEP aridity index")
-ggplot(combined_nod[combined_nod$y < 0, ], aes(x = nod_category, y = BIOCLIM_1/10, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. presence of nodulators,\nSouthern Hemisphere", x="RPD_significance", y = "UNEP aridity index")
-ggplot(combined_nod[combined_nod$y > 0, ], aes(x = nod_category, y = BIOCLIM_1/10, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Mean annual temperature vs. presence of nodulators,\nSouthern Hemisphere", x="Nodulator presence", y = "Mean annual temperature")
-ggplot(combined_nod[combined_nod$y > 0, ], aes(x = nod_category, y = aridity_index_UNEP, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. presence of nodulators,\nNorthern Hemisphere", x="Nodulator presence", y = "UNEP aridity index") + ylim(0, 1)
-combined_nod$nod_category <- as.factor(ifelse(combined_nod$prop_nod > 0, "Present", "Absent"))#
-ggplot(combined_nod[combined_nod$y > 0, ], aes(x = nod_category, y = aridity_index_UNEP, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. presence of nodulators,\nNorthern Hemisphere", x="Nodulator presence", y = "UNEP aridity index") + ylim(0, 1)
-ggplot(combined_nod[combined_nod$y < 0, ], aes(x = nod_category, y = aridity_index_UNEP, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. presence of nodulators,\nSouthern Hemisphere", x="Nodulator presence", y = "UNEP aridity index") + ylim(0, 1)
-ggplot(combined_nod[combined_nod$y > 0, ], aes(x = nod_category, y = BIOCLIM_1/10, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Mean annual temperature vs. presence of nodulators,\nSouthern Hemisphere", x="Nodulator presence", y = "Mean annual temperature")
-ggplot(combined_nod[combined_nod$y > 0, ], aes(x = nod_category, y = BIOCLIM_1/10, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Mean annual temperature vs. \npresence of nodulators,\nSouthern Hemisphere", x="Nodulator presence", y = "Mean annual temperature")
-ggplot(combined_nod[combined_nod$y < 0, ], aes(x = nod_category, y = BIOCLIM_1/10, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Mean annual temperature vs. \npresence of nodulators,\nSouthern Hemisphere", x="Nodulator presence", y = "Mean annual temperature")
-ggplot(combined_nod[combined_nod$y > 0, ], aes(x = nod_category, y = aridity_index_UNEP, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. presence of nodulators,\nNorthern Hemisphere", x="Nodulator presence", y = "UNEP aridity index")
-ggplot(combined_nod[combined_nod$y > 0, ], aes(x = nod_category, y = aridity_index_UNEP, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. presence of nodulators,\nNorthern Hemisphere", x="Nodulator presence", y = "UNEP aridity index") + ylim(quantile(combined$aridity_index_UNEP, 0.025, na.rm = TRUE), quantile(combined$aridity_index_UNEP, 0.975, na.rm = TRUE))
-ggplot(combined_nod[combined_nod$y < 0, ], aes(x = nod_category, y = aridity_index_UNEP, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. presence of nodulators,\nSouthern Hemisphere", x="Nodulator presence", y = "UNEP aridity index") + ylim(quantile(combined$aridity_index_UNEP, 0.025, na.rm = TRUE), quantile(combined$aridity_index_UNEP, 0.975, na.rm = TRUE))
-rand_RPD <- read.csv("./Fagales_CSVs_ToShare/rand_RPD_50km.csv")#
-rand_RPD$x <- round(rand_RPD$x, digit = 1)#
-rand_RPD$y <- round(rand_RPD$y, digit = 1)#
-rand_RPD %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> rand_RPD#
-rand_RPD <- as.data.frame(rand_RPD)#
-# Add significance column#
-# Note this is just significantly low RPD#
-rand_RPD$RPD_significance <- as.factor(ifelse(rand_RPD$value < 0.05, "Yes", "No"))#
-rand_RPD$RPD_significance_high <- as.factor(ifelse(rand_RPD$value > 0.95, "Yes", "No"))#
-rand_RPD$value <- NULL
-combined <- merge(rand_RPD, env, by = c("x", "y"))
-combined <- merge(combined, RPD, by = c("x", "y"))
-combined <- merge(combined, CANAPE, by = c("x", "y"))
-combined.temp <- combined#
-combined.scaled <- rapply(combined.temp, scale, c("numeric","integer"), how="replace")#
-combined.scaled$SR <- combined$SR#
-combined.scaled <- as.data.frame(combined.scaled)#
-combined.scaled$y <- combined.temp$y#
-combined.scaled$x <- combined.temp$x
-ggplot(combined[combined$y > 0, ], aes(x = RPD_significance_high, y = aridity_index_UNEP, fill = RPD_significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(quantile(combined$aridity_index_UNEP, 0.025, na.rm = TRUE), quantile(combined$aridity_index_UNEP, 0.975, na.rm = TRUE))
-combined$RPD_significance_high
-combined$RPD_significance
-library(dplyr)#
-library(readr)#
-# Load environmental data; choosing PD as the most high resolution reported variable#
-env <- list.files(path="./climate_data/spatial_data_climate/PD_P_50km", full.names = TRUE) %>% lapply(read_csv) %>% bind_rows #
-env <- data.frame(env)#
-env[env == -9999] <- NA#
-env$x <- round(env$x, digit = 1)#
-env$y <- round(env$y, digit = 1)#
-env %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> env#
-env <- as.data.frame(env)#
-#
-# Add RPD randomizations#
-#
-rand_RPD <- read.csv("./Fagales_CSVs_ToShare/rand_RPD_50km.csv")#
-rand_RPD$x <- round(rand_RPD$x, digit = 1)#
-rand_RPD$y <- round(rand_RPD$y, digit = 1)#
-rand_RPD %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> rand_RPD#
-rand_RPD <- as.data.frame(rand_RPD)#
-# Add significance column#
-# Note this is just significantly low RPD#
-rand_RPD$RPD_significance <- as.factor(ifelse(rand_RPD$value < 0.05, "Yes", "No"))#
-rand_RPD$RPD_significance_high <- as.factor(ifelse(rand_RPD$value > 0.95, "Yes", "No"))#
-rand_RPD$value <- NULL#
-#
-combined <- merge(rand_RPD, env, by = c("x", "y"))#
-#
-# Add RPD#
-RPD <- read.csv("./Fagales_CSVs_ToShare/RPD_50km.csv")#
-names(RPD) <- c("x", "y", "RPD")#
-RPD$x <- round(RPD$x, digit = 1)#
-RPD$y <- round(RPD$y, digit = 1)#
-RPD %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> RPD#
-RPD <- as.data.frame(RPD)#
-#
-combined <- merge(combined, RPD, by = c("x", "y"))#
-#
-# Add CANAPE#
-CANAPE <- read.csv("./Fagales_CSVs_ToShare/CANAPE.csv")#
-names(CANAPE) <- c("x", "y", "CANAPE")#
-CANAPE$x <- round(CANAPE$x, digit = 1)#
-CANAPE$y <- round(CANAPE$y, digit = 1)#
-CANAPE %>% group_by(x, y) %>% summarize_if(is.character, max) -> CANAPE#
-CANAPE <- as.data.frame(CANAPE)#
-CANAPE$CANAPE <- as.factor(CANAPE$CANAPE)#
-#
-combined <- merge(combined, CANAPE, by = c("x", "y"))#
-#
-## Add SR#
-## This merge drops too many cells so this was only used to test species richness filtering in the models#
-#SR <- read.csv("./Fagales_CSVs_ToShare/richness_50km.csv")#
-#names(SR) <- c("x", "y", "SR")#
-#SR$x <- round(SR$x, digit = 1)#
-#SR$y <- round(SR$y, digit = 1)#
-#SR %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> SR#
-#SR <- as.data.frame(SR)#
-#
-#combined <- merge(combined, SR, by = c("x", "y"))#
-# Normalize entire data frame#
-combined.temp <- combined#
-combined.scaled <- rapply(combined.temp, scale, c("numeric","integer"), how="replace")#
-combined.scaled$SR <- combined$SR#
-combined.scaled <- as.data.frame(combined.scaled)#
-combined.scaled$y <- combined.temp$y#
-combined.scaled$x <- combined.temp$x
-ggplot(combined[combined$y < 0, ], aes(x = RPD_significance_high, y = aridity_index_UNEP, fill = RPD_significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(quantile(combined$aridity_index_UNEP, 0.025, na.rm = TRUE), quantile(combined$aridity_index_UNEP, 0.975, na.rm = TRUE))
+median(5,6,7)
+median
+median(c(5,6,7))
+median(c(5,6))
+median(c(5.5,7))
 #########################
 # Load data sets#
 #########################
@@ -434,13 +70,97 @@ combined.scaled$SR <- combined$SR#
 combined.scaled <- as.data.frame(combined.scaled)#
 combined.scaled$y <- combined.temp$y#
 combined.scaled$x <- combined.temp$x
-ggplot(combined[combined$y > 0, ], aes(x = RPD_significance, y = aridity_index_UNEP, fill = RPD_significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(quantile(combined$aridity_index_UNEP, 0.025, na.rm = TRUE), quantile(combined$aridity_index_UNEP, 0.975, na.rm = TRUE))
-unique(rand_RPD$RPD_significance)
-rand_RPD <- read.csv("./Fagales_CSVs_ToShare/rand_RPD_50km.csv")#
-rand_RPD$x <- round(rand_RPD$x, digit = 1)#
-rand_RPD$y <- round(rand_RPD$y, digit = 1)#
-rand_RPD %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> rand_RPD#
-rand_RPD <- as.data.frame(rand_RPD)#
-# Add significance column#
-# Note this is just significantly low RPD
-rand_RPD$value
+proportion_nodulating_env <- list.files(path="./climate_data/spatial_data_climate/proportion_nodulating", full.names = TRUE) %>% lapply(read_csv) %>% bind_rows #
+proportion_nodulating_env <- data.frame(proportion_nodulating_env)#
+proportion_nodulating <- read.csv("./Fagales_CSVs_ToShare/proportion_nodulating.csv")#
+#
+combined_nod <- merge(proportion_nodulating, proportion_nodulating_env, by = c("x", "y"))#
+combined_nod[combined_nod == -9999] <- NA#
+#
+combined_nod$x <- round(combined_nod$x, digit = 1)#
+combined_nod$y <- round(combined_nod$y, digit = 1)#
+combined_nod %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> combined_nod#
+combined_nod <- as.data.frame(combined_nod)#
+#
+## Add SR#
+## Omit; too many dropped cells#
+#combined_nod <- merge(combined_nod, SR, by = c("x", "y"))#
+# Normalize entire data frame#
+# Exclude grid cells without nodulation to address zero-inflation#
+combined_nod.scaled <- rapply(combined_nod[combined_nod$prop_nod > 0,], scale, c("numeric","integer"), how="replace")#
+#combined_nod.scaled$SR <- combined_nod[combined_nod$prop_nod > 0,]$SR#
+combined_nod.scaled$x <- combined_nod[combined_nod$prop_nod > 0,]$x#
+combined_nod.scaled$y <- combined_nod[combined_nod$prop_nod > 0,]$y#
+combined_nod.scaled <- as.data.frame(combined_nod.scaled)
+RPD
+head(RPD)
+proportion_nodulating$x <- round(proportion_nodulating$x, digit = 0)#
+proportion_nodulating$y <- round(proportion_nodulating$y, digit = 0)#
+proportion_nodulating %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> proportion_nodulating#
+proportion_nodulating <- as.data.frame(proportion_nodulating)
+RPD <- read.csv("./Fagales_CSVs_ToShare/RPD_50km.csv")#
+names(RPD) <- c("x", "y", "RPD")#
+RPD$x <- round(RPD$x, digit = 0)#
+RPD$y <- round(RPD$y, digit = 0)#
+RPD %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> RPD#
+RPD <- as.data.frame(RPD)
+nod_rpd <- merge(proportion_nodulating, RPD, by = c("x", "y"))
+summary(lm(RPD ~ proportion_nodulating, data = nod_rpd)
+)
+proportion_nodulating
+head(proportion_nodulating)
+summary(lm(RPD ~ prop_nod, data = nod_rpd))
+proportion_nodulating <- read.csv("./Fagales_CSVs_ToShare/proportion_nodulating.csv")#
+proportion_nodulating$x <- round(proportion_nodulating$x, digit = 1)#
+proportion_nodulating$y <- round(proportion_nodulating$y, digit = 1)#
+proportion_nodulating %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> proportion_nodulating#
+proportion_nodulating <- as.data.frame(proportion_nodulating)
+RPD <- read.csv("./Fagales_CSVs_ToShare/RPD_50km.csv")#
+names(RPD) <- c("x", "y", "RPD")#
+RPD$x <- round(RPD$x, digit = 1)#
+RPD$y <- round(RPD$y, digit = 1)#
+RPD %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> RPD#
+RPD <- as.data.frame(RPD)
+nod_rpd <- merge(proportion_nodulating, RPD, by = c("x", "y"))
+summary(lm(RPD ~ prop_nod, data = nod_rpd))
+proportion_nodulating <- read.csv("./Fagales_CSVs_ToShare/proportion_nodulating.csv")#
+proportion_nodulating$x <- round(proportion_nodulating$x, digit = 0)#
+proportion_nodulating$y <- round(proportion_nodulating$y, digit = 0)#
+proportion_nodulating %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> proportion_nodulating#
+proportion_nodulating <- as.data.frame(proportion_nodulating)#
+#
+RPD <- read.csv("./Fagales_CSVs_ToShare/RPD_50km.csv")#
+names(RPD) <- c("x", "y", "RPD")#
+RPD$x <- round(RPD$x, digit = 0)#
+RPD$y <- round(RPD$y, digit = 0)#
+RPD %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> RPD#
+RPD <- as.data.frame(RPD)#
+#
+nod_rpd <- merge(proportion_nodulating, RPD, by = c("x", "y"))#
+#
+summary(lm(RPD ~ prop_nod, data = nod_rpd))
+plot(RPD ~ prop_nod, data = nod_rpd)
+plot(prop_nod ~ RPD, data = nod_rpd)
+summary(lm(prop_nod ~ RPD, data = nod_rpd))
+combined
+summary(lm(RPD ~ y, data = combined
+))
+summary(lm(RPD ~ y, data = combined))
+head(combined)
+summary(lm(RPD ~ aridity_index_UNEP, data = combined))
+mixed_model_complex <- lmer(RPD ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined.scaled)
+library(lme4)#
+mixed_model_complex <- lmer(RPD ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined.scaled)
+summary(mixed_model_complex)
+summary(lm(RPD ~ aridity_index_UNEP, data = combined))
+mixed_model_complex <- lmer(prop_nod ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined_nod.scaled)
+summary(mixed_model_complex)
+summary(lm(prop_nod ~ aridity_index_UNEP, data = combined_nod))
+linear_model_complex <- lm(CANAPE ~ aridity_index_UNEP, data = combined)
+linear_model_complex <- lm(aridity_index_UNEP ~ CANAPE, data = combined)
+summary(lm(aridity_index_UNEP ~ CANAPE, data = combined))
+summary(lm(aridity_index_UNEP ~ RPD, data = combined[combined$y > 0, ]))
+summary(lm(aridity_index_UNEP ~ RPD, data = combined[combined$y < 0, ]))
+summary(lm(aridity_index_UNEP ~ prop.nod, data = combined_nod[combined_nod$y < 0, ]))
+summary(lm(aridity_index_UNEP ~ prop_nod, data = combined_nod[combined_nod$y < 0, ]))
+summary(lm(aridity_index_UNEP ~ prop_nod, data = combined_nod[combined_nod$y > 0, ]))

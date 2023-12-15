@@ -92,6 +92,9 @@ AIC(mixed_model_noenvironment)
 # Complex mixed model favored
 
 summary(mixed_model_complex)
+# read out version with p-values
+library(lmerTest)
+summary(lmer(RPD ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined.scaled))
 
 library(MuMIn)
 r.squaredGLMM(mixed_model_complex)
@@ -119,6 +122,7 @@ AIC(mixed_model_simple)
 AIC(mixed_model_noenvironment)
 
 # Mixed model complex favored
+# this summary already has p-values
 summary(mixed_model_complex)
 
 library(MuMIn)
@@ -215,6 +219,9 @@ AIC(mixed_model_noenvironment)
 # Complex mixed model favored
 
 summary(mixed_model_complex)
+library(lmerTest)
+summary(lmer(prop_nod ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined_nod.scaled))
+
 
 library(MuMIn)
 r.squaredGLMM(mixed_model_complex)
@@ -256,29 +263,23 @@ ggplot(combined_nod[combined_nod$y < 0, ], aes(x = nod_category, y = BIOCLIM_1/1
 
 
 #########################
-## Nodulation vs. significance
+## Investigation of prop_nod/RPD correlation (datasets above do not provide this)
 #########################
-#
-## harder rounding to join pixels
-#
-#proportion_nodulating$x <- round(proportion_nodulating$x, digit = 0)
-#proportion_nodulating$y <- round(proportion_nodulating$y, digit = 0)
-#proportion_nodulating %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> proportion_nodulating
-#proportion_nodulating <- as.data.frame(proportion_nodulating)
-#
-#CANAPE <- read.csv("./Fagales_CSVs_ToShare/CANAPE.csv")
-#names(CANAPE) <- c("x", "y", "CANAPE")
-#CANAPE$x <- round(CANAPE$x, digit = 0)
-#CANAPE$y <- round(CANAPE$y, digit = 0)
-#CANAPE %>% group_by(x, y) %>% summarize_if(is.character, max) -> CANAPE
-#CANAPE <- as.data.frame(CANAPE)
-#CANAPE$CANAPE <- as.factor(CANAPE$CANAPE)
-#
-#nod_rpd <- merge(proportion_nodulating, CANAPE, by = c("x", "y"))
-#
-## North South Hemisphere RPD comparison
-#ggplot(nod_rpd[nod_rpd$y > 0, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index") + ylim(0, 0.5)
-#ggplot(nod_rpd[nod_rpd$y < 0, ], aes(x = CANAPE, y = prop_nod, fill = CANAPE, ymin = 0)) + geom_violin(trim=TRUE) + geom_boxplot(width=0.1, fill="white") + labs(title="Aridity vs. RPD significance", x="RPD_significance", y = "UNEP aridity index")
-#
-#
-#
+
+# Reload proportion nodulating and RPD, merge on a harder lat/long rounding to improve dataset overlap 
+proportion_nodulating <- read.csv("./Fagales_CSVs_ToShare/proportion_nodulating.csv")
+proportion_nodulating$x <- round(proportion_nodulating$x, digit = 0)
+proportion_nodulating$y <- round(proportion_nodulating$y, digit = 0)
+proportion_nodulating %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> proportion_nodulating
+proportion_nodulating <- as.data.frame(proportion_nodulating)
+
+RPD <- read.csv("./Fagales_CSVs_ToShare/RPD_50km.csv")
+names(RPD) <- c("x", "y", "RPD")
+RPD$x <- round(RPD$x, digit = 0)
+RPD$y <- round(RPD$y, digit = 0)
+RPD %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> RPD
+RPD <- as.data.frame(RPD)
+
+nod_rpd <- merge(proportion_nodulating, RPD, by = c("x", "y"))
+
+summary(lm(RPD ~ prop_nod, data = nod_rpd))
