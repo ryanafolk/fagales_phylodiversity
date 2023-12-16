@@ -70,6 +70,43 @@ combined.scaled$SR <- combined$SR#
 combined.scaled <- as.data.frame(combined.scaled)#
 combined.scaled$y <- combined.temp$y#
 combined.scaled$x <- combined.temp$x
+# RPD model#
+linear_model_complex <- lm(RPD ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced, data = combined.scaled)#
+# Top 5 predictors by GLM normalized coefficient#
+linear_model_simple <- lm(RPD ~ BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced, data = combined.scaled)#
+library(lme4)#
+mixed_model_complex <- lmer(RPD ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined.scaled)#
+# Top 5 predictors by LMM normalized coefficient#
+mixed_model_simple <- lmer(RPD ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined.scaled)#
+mixed_model_noenvironment <- lmer(RPD ~ (1 | y) + (1 | x), na.action = na.omit, data = combined.scaled)
+library(performance)
+r2(mixed_model_complex)
+lmerTest(mixed_model_complex)
+library(lmerTest)
+summary(mixed_model_complex)
+summary(lmer(mixed_model_complex))
+summary(lmer(RPD ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined.scaled))
+summary(lmer(RPD ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined.scaled))library(lmerTest)#
+summary(lmer(prop_nod ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined_nod.scaled))
+mixed_model_complex <- glmer(CANAPE_significant ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), family=binomial(link='logit'), na.action = na.omit, data = combined.scaled, control = glmerControl(optimizer = "bobyqa",optCtrl = list(maxfun = 2e5))) # Stronger likelihood search options per warnings + documentation
+combined.scaled$CANAPE_significant <- combined.scaled$CANAPE#
+levels(combined.scaled$CANAPE_significant)[levels(combined.scaled$CANAPE_significant)=="Neo"] <-"Sig"#
+levels(combined.scaled$CANAPE_significant)[levels(combined.scaled$CANAPE_significant)=="Mixed"] <-"Sig"#
+levels(combined.scaled$CANAPE_significant)[levels(combined.scaled$CANAPE_significant)=="Paleo"] <-"Sig"#
+levels(combined.scaled$CANAPE_significant)
+mixed_model_complex <- glmer(CANAPE_significant ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), family=binomial(link='logit'), na.action = na.omit, data = combined.scaled, control = glmerControl(optimizer = "bobyqa",optCtrl = list(maxfun = 2e5))) # Stronger likelihood search options per warnings + documentation
+summary(mixed_model_complex)
+summary(lmer(RPD ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined[combined$y > 0, ]))
+summary(lmer(RPD ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined[combined$y < 0, ]))
+summary(lmer(RPD ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined.scaled[combined.scaled$y > 0, ]))
+summary(lmer(RPD ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined.scaled[combined.scaled$y < 0, ]))
+summary(lmer(RPD_significance ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined.scaled[combined.scaled$y > 0, ]))
+summary(glmer(RPD_significance ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), family=binomial(link='logit'), na.action = na.omit, data = combined.scaled[combined.scaled$y > 0, ], control = glmerControl(optimizer = "bobyqa",optCtrl = list(maxfun = 2e5)))
+summary(glmer(RPD_significance ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), family=binomial(link='logit'), na.action = na.omit, data = combined.scaled[combined.scaled$y > 0, ], control = glmerControl(optimizer = "bobyqa",optCtrl = list(maxfun = 2e5))) #
+summary(glmer(RPD_significance ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), family=binomial(link='logit'), na.action = na.omit, data = combined.scaled[combined.scaled$y > 0, ], control = glmerControl(optimizer = "bobyqa",optCtrl = list(maxfun = 2e5)))
+summary(glmer(RPD_significance ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), family=binomial(link='logit'), na.action = na.omit, data = combined.scaled[combined.scaled$y > 0, ], control = glmerControl(optimizer = "bobyqa",optCtrl = list(maxfun = 2e5)))
+)
+summary(glmer(RPD_significance ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), family=binomial(link='logit'), na.action = na.omit, data = combined.scaled[combined.scaled$y < 0, ], control = glmerControl(optimizer = "bobyqa",optCtrl = list(maxfun = 2e5))))
 proportion_nodulating_env <- list.files(path="./climate_data/spatial_data_climate/proportion_nodulating", full.names = TRUE) %>% lapply(read_csv) %>% bind_rows #
 proportion_nodulating_env <- data.frame(proportion_nodulating_env)#
 proportion_nodulating <- read.csv("./Fagales_CSVs_ToShare/proportion_nodulating.csv")#
@@ -92,75 +129,16 @@ combined_nod.scaled <- rapply(combined_nod[combined_nod$prop_nod > 0,], scale, c
 combined_nod.scaled$x <- combined_nod[combined_nod$prop_nod > 0,]$x#
 combined_nod.scaled$y <- combined_nod[combined_nod$prop_nod > 0,]$y#
 combined_nod.scaled <- as.data.frame(combined_nod.scaled)
-RPD
-head(RPD)
-proportion_nodulating$x <- round(proportion_nodulating$x, digit = 0)#
-proportion_nodulating$y <- round(proportion_nodulating$y, digit = 0)#
-proportion_nodulating %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> proportion_nodulating#
-proportion_nodulating <- as.data.frame(proportion_nodulating)
-RPD <- read.csv("./Fagales_CSVs_ToShare/RPD_50km.csv")#
-names(RPD) <- c("x", "y", "RPD")#
-RPD$x <- round(RPD$x, digit = 0)#
-RPD$y <- round(RPD$y, digit = 0)#
-RPD %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> RPD#
-RPD <- as.data.frame(RPD)
-nod_rpd <- merge(proportion_nodulating, RPD, by = c("x", "y"))
-summary(lm(RPD ~ proportion_nodulating, data = nod_rpd)
-)
-proportion_nodulating
-head(proportion_nodulating)
-summary(lm(RPD ~ prop_nod, data = nod_rpd))
-proportion_nodulating <- read.csv("./Fagales_CSVs_ToShare/proportion_nodulating.csv")#
-proportion_nodulating$x <- round(proportion_nodulating$x, digit = 1)#
-proportion_nodulating$y <- round(proportion_nodulating$y, digit = 1)#
-proportion_nodulating %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> proportion_nodulating#
-proportion_nodulating <- as.data.frame(proportion_nodulating)
-RPD <- read.csv("./Fagales_CSVs_ToShare/RPD_50km.csv")#
-names(RPD) <- c("x", "y", "RPD")#
-RPD$x <- round(RPD$x, digit = 1)#
-RPD$y <- round(RPD$y, digit = 1)#
-RPD %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> RPD#
-RPD <- as.data.frame(RPD)
-nod_rpd <- merge(proportion_nodulating, RPD, by = c("x", "y"))
-summary(lm(RPD ~ prop_nod, data = nod_rpd))
-proportion_nodulating <- read.csv("./Fagales_CSVs_ToShare/proportion_nodulating.csv")#
-proportion_nodulating$x <- round(proportion_nodulating$x, digit = 0)#
-proportion_nodulating$y <- round(proportion_nodulating$y, digit = 0)#
-proportion_nodulating %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> proportion_nodulating#
-proportion_nodulating <- as.data.frame(proportion_nodulating)#
-#
-RPD <- read.csv("./Fagales_CSVs_ToShare/RPD_50km.csv")#
-names(RPD) <- c("x", "y", "RPD")#
-RPD$x <- round(RPD$x, digit = 0)#
-RPD$y <- round(RPD$y, digit = 0)#
-RPD %>% group_by(x, y) %>% summarize_if(is.numeric, mean, na.rm = TRUE) -> RPD#
-RPD <- as.data.frame(RPD)#
-#
-nod_rpd <- merge(proportion_nodulating, RPD, by = c("x", "y"))#
-#
-summary(lm(RPD ~ prop_nod, data = nod_rpd))
-plot(RPD ~ prop_nod, data = nod_rpd)
-plot(prop_nod ~ RPD, data = nod_rpd)
-summary(lm(prop_nod ~ RPD, data = nod_rpd))
-combined
-summary(lm(RPD ~ y, data = combined
-))
-summary(lm(RPD ~ y, data = combined))
-head(combined)
-summary(lm(RPD ~ aridity_index_UNEP, data = combined))
-mixed_model_complex <- lmer(RPD ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined.scaled)
-library(lme4)#
-mixed_model_complex <- lmer(RPD ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined.scaled)
-summary(mixed_model_complex)
-summary(lm(RPD ~ aridity_index_UNEP, data = combined))
-mixed_model_complex <- lmer(prop_nod ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined_nod.scaled)
-summary(mixed_model_complex)
-summary(lm(prop_nod ~ aridity_index_UNEP, data = combined_nod))
-linear_model_complex <- lm(CANAPE ~ aridity_index_UNEP, data = combined)
-linear_model_complex <- lm(aridity_index_UNEP ~ CANAPE, data = combined)
-summary(lm(aridity_index_UNEP ~ CANAPE, data = combined))
-summary(lm(aridity_index_UNEP ~ RPD, data = combined[combined$y > 0, ]))
-summary(lm(aridity_index_UNEP ~ RPD, data = combined[combined$y < 0, ]))
-summary(lm(aridity_index_UNEP ~ prop.nod, data = combined_nod[combined_nod$y < 0, ]))
-summary(lm(aridity_index_UNEP ~ prop_nod, data = combined_nod[combined_nod$y < 0, ]))
-summary(lm(aridity_index_UNEP ~ prop_nod, data = combined_nod[combined_nod$y > 0, ]))
+combined_nod$nod_category <- as.factor(ifelse(combined_nod$prop_nod > 0, "Present", "Absent"))
+# north hemisphere#
+summary(glmer(nod_category ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), family=binomial(link='logit'), na.action = na.omit, data = combined.scaled[combined.scaled$y > 0, ], control = glmerControl(optimizer = "bobyqa",optCtrl = list(maxfun = 2e5))))#
+# south hemisphere#
+summary(glmer(nod_category ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), family=binomial(link='logit'), na.action = na.omit, data = combined.scaled[combined.scaled$y < 0, ], control = glmerControl(optimizer = "bobyqa",optCtrl = list(maxfun = 2e5))))
+combined_nod.scaled$nod_category <- as.factor(ifelse(combined_nod.scaled$prop_nod > 0, "Present", "Absent"))
+summary(glmer(nod_category ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), family=binomial(link='logit'), na.action = na.omit, data = combined_nod.scaled[combined_nod.scaled$y > 0, ], control = glmerControl(optimizer = "bobyqa",optCtrl = list(maxfun = 2e5))))
+summary(glmer(nod_category ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), family=binomial(link='logit'), na.action = na.omit, data = combined_nod.scaled[combined_nod.scaled$y < 0, ], control = glmerControl(optimizer = "bobyqa",optCtrl = list(maxfun = 2e5))))
+library(lmerTest)#
+summary(lmer(prop_nod ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined_nod.scaled))
+summary(lmer(prop_nod ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined_nod.scaled[combined_nod.scaled$y < 0]))
+combined_nod.scaled$y
+summary(lmer(prop_nod ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined_nod.scaled[combined_nod.scaled$y < 0, ]))

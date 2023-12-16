@@ -156,6 +156,13 @@ ggplot(combined[combined$y < 0, ], aes(x = RPD_significance, y = aridity_index_U
 ggplot(combined[combined$y > 0, ], aes(x = RPD_significance, y = BIOCLIM_1, fill = RPD_significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Mean annual temperature vs. \nRPD significance", x="RPD_significance", y = "Mean annual temperature") + ylim(quantile(combined$BIOCLIM_1, 0.025, na.rm = TRUE), quantile(combined$BIOCLIM_1, 0.975, na.rm = TRUE))
 ggplot(combined[combined$y < 0, ], aes(x = RPD_significance, y = BIOCLIM_1, fill = RPD_significance)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Mean annual temperature vs. \nRPD significance", x="RPD_significance", y = "Mean annual temperature") + ylim(quantile(combined$BIOCLIM_1, 0.025, na.rm = TRUE), quantile(combined$BIOCLIM_1, 0.975, na.rm = TRUE))
 
+# Violin figure p-values. Note the p-values contain RPD significance, not RPD, so we need an alternative model class compared to raw RPD models noted above
+library(lmerTest)
+# north hemisphere
+summary(glmer(RPD_significance ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), family=binomial(link='logit'), na.action = na.omit, data = combined.scaled[combined.scaled$y > 0, ], control = glmerControl(optimizer = "bobyqa",optCtrl = list(maxfun = 2e5))))
+# south hemisphere
+summary(glmer(RPD_significance ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), family=binomial(link='logit'), na.action = na.omit, data = combined.scaled[combined.scaled$y < 0, ], control = glmerControl(optimizer = "bobyqa",optCtrl = list(maxfun = 2e5))))
+
 
 
 #library(merTools)
@@ -221,6 +228,8 @@ AIC(mixed_model_noenvironment)
 summary(mixed_model_complex)
 library(lmerTest)
 summary(lmer(prop_nod ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined_nod.scaled))
+# southern hemisphere
+summary(lmer(prop_nod ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), na.action = na.omit, data = combined_nod.scaled[combined_nod.scaled$y < 0, ]))
 
 
 library(MuMIn)
@@ -260,6 +269,14 @@ ggplot(combined_nod[combined_nod$y < 0, ], aes(x = nod_category, y = aridity_ind
 
 ggplot(combined_nod[combined_nod$y > 0, ], aes(x = nod_category, y = BIOCLIM_1/10, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Mean annual temperature vs. \npresence of nodulators,\nSouthern Hemisphere", x="Nodulator presence", y = "Mean annual temperature")
 ggplot(combined_nod[combined_nod$y < 0, ], aes(x = nod_category, y = BIOCLIM_1/10, fill = nod_category)) + geom_violin(trim=FALSE) + geom_boxplot(width=0.1, fill="white") + labs(title="Mean annual temperature vs. \npresence of nodulators,\nSouthern Hemisphere", x="Nodulator presence", y = "Mean annual temperature")
+
+# Violin figure p-values. Note the p-values contain RPD significance, not RPD, so we need an alternative model class compared to raw RPD models noted above
+combined_nod.scaled$nod_category <- as.factor(ifelse(combined_nod.scaled$prop_nod > 0, "Present", "Absent"))
+# north hemisphere
+summary(glmer(nod_category ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), family=binomial(link='logit'), na.action = na.omit, data = combined_nod.scaled[combined_nod.scaled$y > 0, ], control = glmerControl(optimizer = "bobyqa",optCtrl = list(maxfun = 2e5))))
+# south hemisphere
+summary(glmer(nod_category ~ aridity_index_UNEP + BIOCLIM_1 + BIOCLIM_12 + BIOCLIM_7 + BIOCLIM_17 + ISRICSOILGRIDS_new_average_nitrogen_reduced + ISRICSOILGRIDS_new_average_phx10percent_reduced + ISRICSOILGRIDS_new_average_soilorganiccarboncontent_reduced + (1 | y) + (1 | x), family=binomial(link='logit'), na.action = na.omit, data = combined_nod.scaled[combined_nod.scaled$y < 0, ], control = glmerControl(optimizer = "bobyqa",optCtrl = list(maxfun = 2e5))))
+
 
 
 #########################
